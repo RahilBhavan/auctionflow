@@ -1,0 +1,2 @@
+{"event_id":"entry","timestamp":"2025-01-02T14:00:00Z","symbol":"MES","kind":"trade","price_ticks":100,"quantity":1,"sequence":1}
+{"event_id":"future","timestamp":"2025-01-02T14:01:00Z","symbol":"MES","kind":"trade","price_ticks":103,"quantity":1,"sequence":2}

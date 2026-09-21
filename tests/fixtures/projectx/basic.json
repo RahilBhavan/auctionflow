@@ -1,0 +1,10 @@
+{
+  "auth": {"authenticated": true},
+  "reconciliation": [{"id": "position-1", "qty": 1}],
+  "callbacks": [
+    {"stream": "trades", "price": 100, "contract_id": "MES"},
+    {"stream": "trades", "price": 100, "contract_id": "MES"},
+    {"unknown": true},
+    "malformed"
+  ]
+}

@@ -1,0 +1,7 @@
+{"event_id":"mt-1","timestamp":"2025-01-02T14:36:00+00:00","symbol":"MES","sequence":1,"kind":"trade","price_ticks":90,"quantity":1}
+{"event_id":"mt-2","timestamp":"2025-01-02T14:37:00+00:00","symbol":"MES","sequence":2,"kind":"trade","price_ticks":98,"quantity":1,"aggressive":true,"poor_response":true}
+{"event_id":"mt-3","timestamp":"2025-01-02T14:38:00+00:00","symbol":"MES","sequence":3,"kind":"trade","price_ticks":103,"quantity":1}
+{"event_id":"mt-4","timestamp":"2025-01-02T14:39:00+00:00","symbol":"MES","sequence":4,"kind":"trade","price_ticks":100,"quantity":1}
+{"event_id":"mt-5","timestamp":"2025-01-02T14:40:00+00:00","symbol":"MES","sequence":5,"kind":"trade","price_ticks":99,"quantity":1}
+{"event_id":"mt-6","timestamp":"2025-01-02T14:41:00+00:00","symbol":"MES","sequence":6,"kind":"trade","price_ticks":98,"quantity":1,"aggressive":true,"poor_response":true}
+{"event_id":"mt-7","timestamp":"2025-01-02T14:42:00+00:00","symbol":"MES","sequence":7,"kind":"trade","price_ticks":103,"quantity":1}
