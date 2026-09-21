@@ -29,3 +29,11 @@ The fixture-only `auctionflow capture` command writes deterministic local raw JS
 Databento GLBX MDP3 1-minute CSV uses the exact header `ts_event,rtype,publisher_id,instrument_id,open,high,low,close,volume,symbol`. Rows must be UTC nanosecond timestamps, `rtype=33`, and `publisher_id=1`; prices are raw, unadjusted MES prices on 0.25-point ticks. Spread symbols are excluded. For each represented America/New_York ET date, the selected contract is the outright with highest volume on the immediately prior represented ET date; ties are resolved by symbol, and the first represented date is excluded. Only the 09:30–11:29 ET projection is evaluated. Missing or duplicate selected minutes invalidate evaluation, and contract rolls are not adjusted, so roll-day results require that caveat.
 
 Run it with `auctionflow backtest-bars data/external/databento/glbx-mdp3-20190506-20260803.ohlcv-1m.csv --format databento-glbx-mes-ohlcv-1m --report data/external/databento/backtests/databento-mes-ib-2019-2026-v1.report.json --sessions-jsonl data/external/databento/backtests/databento-mes-ib-2019-2026-v1.sessions.jsonl --experiment-id databento-mes-ib-2019-2026-v1 --created-at 2026-08-05T15:00:00Z`.
+
+## Results so far (research only)
+
+The Databento GLBX MDP3 replay covers 1,870 MES sessions from 2019-05 to 2026-08 (1,859 valid, 11 invalidated by missing contiguous bars) under the frozen `ib_acceptance` strategy with 122 cents commission and 125 cents slippage per contract round trip. Sessions are partitioned chronologically 60/20/20 into train, validation and test. The strategy accepted 419 sessions and journaled `NO_TRADE` on 1,419; expectancy per accepted trade was negative on the train and validation partitions and positive only on the test partition, which is the pattern the promotion policy treats as no evidence. Nothing has been promoted from `RESEARCH_ONLY`. The report and session JSONL are reproducible from the command above; they are not committed because the underlying data is licensed.
+
+## Status
+
+Milestone 0. 341 tests, `ruff` clean, CI on push. MIT licensed. Not investment advice, not connected to any broker, not a trading system.
