@@ -1,4 +1,6 @@
-# Data Contract
+# Data contract
+
+This file defines the raw and canonical record formats and the rules for each vendor input.
 
 Raw JSONL is immutable and preserved independently from normalized records. Collector envelopes use the frozen `projectx.raw.v1` contract, retain arbitrary payloads (including malformed or unknown values), redact credential-like keys recursively, and require contiguous local sequences. Each line is compact canonical JSON, flushed immediately; capture files are exclusive-create append-only artifacts and clean shutdown writes a deterministic manifest containing count, capture SHA-256, selected streams, and status. Persistence failures are fatal. Malformed lines are reported with line number and event ID and cannot authorize an alert. Replay is deterministic: identical raw input, initial state, and config produce byte-identical canonical output.
 

@@ -1,4 +1,6 @@
-# Promotion Policy
+# Promotion policy
+
+This file lists the evidence a strategy needs before it can leave `RESEARCH_ONLY`.
 
 Nothing in Milestone 0 is promoted or live. A strategy/default remains `RESEARCH_ONLY` and alert-only unless a later approved milestone documents evidence, review, and rollback criteria.
 

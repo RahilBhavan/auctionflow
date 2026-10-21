@@ -1,10 +1,12 @@
-# Project Charter
+# Project charter
+
+This file states the project's purpose, its alert-only boundary, and its operating limits.
 
 ## Purpose
 Build the smallest auditable deterministic replay path for MES research. The system validates recorded inputs, advances explicit state, applies risk gates, and writes a decision journal.
 
 ## Non-negotiable boundary
-This milestone is local-only, offline, deterministic, and **alert-only**. It never places, modifies, or cancels an order and has no ProjectX connection, credentials, live feed, account reconciliation, UI, database, or execution authority. `AUTHORIZE_*` means only that a simulated alert passed internal gates.
+This milestone is local-only, deterministic, and **alert-only**. It never places, modifies, or cancels an order and has no order endpoint, live feed into the decision path, live account reconciliation, UI, database, or execution authority. The only network code is the opt-in, read-only TopstepX client in `projectx_http.py`, used by `shadow-snapshot` (see below). Replay, research, and backtests run offline. `AUTHORIZE_*` means only that a simulated alert passed internal gates.
 
 ## Operating limits
 - One MES contract family and one Topstep session at a time.

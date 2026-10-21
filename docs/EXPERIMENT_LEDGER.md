@@ -1,4 +1,6 @@
-# Experiment Ledger
+# Experiment ledger
+
+This file defines the record that every research trial must leave, including failed trials.
 
 Every threshold/configuration trial, including failures, is recorded here or in the equivalent append-only canonical JSONL ledger supplied to `auctionflow research --ledger PATH`. The command requires an explicit `--created-at` timestamp and appends only after all artifacts succeed; reruns with identical content are idempotent.
 
