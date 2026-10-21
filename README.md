@@ -1,39 +1,118 @@
-# AuctionFlow OneShot
+# AuctionFlow OneShot: deterministic, alert-only replay and research for MES futures sessions
 
-AuctionFlow OneShot is a Python 3.12 research and replay package for one MES contract family and one Topstep session at a time.
+[![ci](https://github.com/RahilBhavan/auctionflow/actions/workflows/ci.yml/badge.svg)](https://github.com/RahilBhavan/auctionflow/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Scope and safety
+> **Research only. Alert only. This project never submits, modifies, or cancels an order.** An `AUTHORIZE_*` decision is a journal entry from a simulation, not an order. Not affiliated with CME Group or Topstep. Not investment advice.
 
-Milestone 0 is local-only, deterministic, offline, and **alert-only**. It can journal `NO_TRADE`, `WATCH`, `SETUP_ARMED`, `AUTHORIZE_1_MES`, `AUTHORIZE_2_MES`, or `BLOCK_ACCOUNT`; an authorization is not an order and no code may connect to a broker, ProjectX, or submit an order. There are no credentials, live collectors, dashboards, databases, or execution gateways in this milestone.
+AuctionFlow OneShot (repository `auctionflow`, package `auctionflow-oneshot`) is a Python 3.12 package that replays one Micro E-mini S&P 500 (MES) futures session at a time under Topstep-style account rules. It reads recorded events or vendor 1-minute bars, advances explicit account and strategy state, applies fail-closed risk gates, and writes a deterministic decision journal. The same inputs, initial state, and config produce byte-identical output, and `replay --verify-determinism` checks it.
 
-The simulated replay consumes its daily token when an authorization is journaled. Durable simulator-only account/session state now persists this one-shot transition with locked, atomic local-file publication; it is not live authority. A future production gateway, if separately approved, must consume a token only after the official API accepts an entry order. No scale-in, re-entry, reversal, or stop widening is allowed.
+## Results
 
-Offline reconciliation is fixture-only and does not reconcile any live account, broker, or ProjectX state. It is a flat-account startup gate that compares strict normalized expected state with fixture telemetry, fingerprints validated observations, and fails closed on missing or unknown data; it has no transport, credentials, order methods, or mutation. Bracket intents are frozen, deterministic, MES-only simulation contracts: LIMIT entry, STOP/LIMIT OCO children, DAY duration, full-quantity protective children, and no scale-in, re-entry, or stop widening. They are never submitted.
+These figures are carried over from the earlier README. The underlying Databento data is licensed, so the report is not committed and could not be re-run for this revision.
 
-## Development
+| Item | Value |
+|---|---|
+| Data | Databento GLBX MDP3 MES 1-minute bars, 2019-05 to 2026-08 |
+| Sessions | 1,870 total, 1,859 valid (11 invalidated by missing contiguous bars) |
+| Strategy | frozen `ib_acceptance` (initial-balance acceptance), 09:30–11:29 ET |
+| Costs | 122 cents commission and 125 cents slippage per contract round trip |
+| Split | chronological 60/20/20 train, validation, and test |
+| Decisions | 419 sessions accepted, 1,419 journaled `NO_TRADE` |
+| Expectancy per accepted trade | negative on train and validation, positive only on test |
+| Outcome | nothing promoted. The promotion policy treats a test-only positive as no evidence. |
 
-Create a Python 3.12 environment and install the project with `pip install -e '.[test,dev]'`. Run `python -m pytest` and `ruff check .` when source and tests exist.
+Source: `data/external/databento/backtests/databento-mes-ib-2019-2026-v1.report.json`, produced by the command in [Run it](#run-it). This file is not in the repository.
 
-## Rules and evidence
+## How it works
 
-`docs/RISK_CONSTITUTION.md` separates official Topstep rules from internal controls. External rules are not treated as current authority until verified against dated official documentation. Research defaults are explicitly `RESEARCH_ONLY`; they are not validated, promoted, or live parameters.
+Each module below is in `src/auctionflow/`. `cli.py` exposes them as the `auctionflow` command.
 
-The fixture-only `auctionflow capture` command writes deterministic local raw JSONL and an explicit manifest. It makes no network calls and accepts no credentials. `src/auctionflow/projectx.py` is fixture-only; it provides the offline collector and fixture transport, not a live or broker transport. `auctionflow.projectx_http` provides an isolated, read-only TopstepX REST boundary with injected transports for tests; its production HTTPS transport is never invoked by tests and is not connected to collector, decision, bracket, or state modules.
+- `session.py`, `rules.py`, `risk.py`: the 09:35–11:30 ET window, a dated Topstep 50K Maximum Loss Limit snapshot, and a risk budget of `min($200, 10% of remaining MLL buffer, remaining daily budget, caps)`.
+- `strategies.py`, `ib_breakout.py`: pure strategy evaluators. Event replay uses the Mouse Trap and Acceptance Breakout cards. Bar backtests use `ib_acceptance`, `failed_ib`, and `liquidity_sweep`.
+- `decision.py`, `replay.py`: emit `NO_TRADE`, `WATCH`, `SETUP_ARMED`, `AUTHORIZE_1_MES`, `AUTHORIZE_2_MES`, or `BLOCK_ACCOUNT`, with reason codes, a config revision, and an account snapshot hash.
+- `state_store.py`: simulator-only account state on local disk with a file lock and atomic writes. A journaled authorization consumes the one daily token, and the token survives a restart. Corrupt or uncertain state fails closed.
+- `bracket.py`, `reconciliation.py`: frozen bracket-intent descriptions (LIMIT entry, STOP and LIMIT OCO children) and a flat-account startup check against fixture data. Neither has a transport.
+- `historical.py`, `databento.py`, `bar_research.py`: load FirstRate, Portara, and Databento bars and run chronological bar backtests with explicit costs.
+- `projectx_http.py`: the only network code. It is an opt-in, read-only TopstepX REST client with a fixed list of search and read endpoints. Only `shadow-snapshot` uses it. It is not connected to the decision, bracket, or state modules.
 
-`auctionflow shadow-snapshot --account-id ID --contract-id MES --output REPORT` performs an opt-in, read-only snapshot. Live mode (the default, `--transport projectx`) reads only `TOPSTEPX_USERNAME` and `TOPSTEPX_API_KEY`, uses real UTC, and never creates or mutates orders. Credential-free local mode is `--transport fixture --fixture PATH --created-at 2025-01-20T16:00:00Z`; PATH is a JSON object keyed by the exact read-only REST endpoint paths, with each value the corresponding response envelope. Fixture mode makes no network calls and requires the explicit UTC clock. Reports are sanitized, exclusive, atomic, and contain local financial data (bars, positions, orders, and trades); they never create orders or bracket intent. A non-MATCH reconciliation is reported as `BLOCK_ACCOUNT`; otherwise the snapshot is `NO_TRADE` with no setup evaluated.
+## Run it
 
-`auctionflow normalize-bars INPUT --output OUTPUT --format firstrate-mes-1m` ingests FirstRate MES 1-minute CSV into canonical JSONL. Portara downloads use `--format portara-mes-1m` and the exact `Date,Time,Open,High,Low,Close,Volume` schema; timestamps are interpreted as fixed UTC-06:00 per the source product page (not Chicago DST), with contract ID inferred from names such as `MES2026M`. This output is **BAR_CLOSE_PROXY**: real exchange-derived vendor bars for pipeline/infrastructure and bar-close research only, not tick/order-flow evidence, aggression, depth, LVN, or exact stop/target sequencing. Add `--strategy-window-only` to retain `[09:35,11:30)` New York time.
+Prerequisites: Python 3.12 and [uv](https://docs.astral.sh/uv/). One regression test runs `uv run`, so the test suite needs uv on `PATH`.
 
-`auctionflow backtest-bars INPUT --report REPORT --sessions-jsonl SESSIONS --experiment-id ID --created-at ISO` evaluates sessions in chronological order as `BAR_OHLC_RESEARCH_ONLY`. `--strategy` selects the frozen `ib_acceptance` (default), `failed_ib`, or `liquidity_sweep` evaluator; sweep references are supplied only by the Databento session projection. Reports retain the chronological 60/20/20 valid-session partitions and include strategy revisions, reference-missing counts, reason counts, per-year metrics, and year concentration diagnostics. Use `--format firstrate-mes-1m`, `--format portara-mes-1m`, or `--format portara-mes-trades`; the latter aggregates Portara `Timestamp,Price,Volume` ticks into minute OHLCV bars using the historical reader. Continuous FirstRate rows (`contract_id` absent) are included without contract-roll adjustment. Results are pipeline evidence only, not profitability or promotion evidence. MES backtest defaults use explicit round-trip assumptions of 122 cents commission and 125 cents slippage per contract; pass zero values explicitly for a deliberate frictionless control.
+```bash
+uv sync --locked --extra test --extra dev
+uv run --locked ruff check .
+uv run --locked python -m pytest -q
+```
 
-Databento GLBX MDP3 1-minute CSV uses the exact header `ts_event,rtype,publisher_id,instrument_id,open,high,low,close,volume,symbol`. Rows must be UTC nanosecond timestamps, `rtype=33`, and `publisher_id=1`; prices are raw, unadjusted MES prices on 0.25-point ticks. Spread symbols are excluded. For each represented America/New_York ET date, the selected contract is the outright with highest volume on the immediately prior represented ET date; ties are resolved by symbol, and the first represented date is excluded. Only the 09:30–11:29 ET projection is evaluated. Missing or duplicate selected minutes invalidate evaluation, and contract rolls are not adjusted, so roll-day results require that caveat.
+Observed on 2026-10-21: `341 passed` in about 3 seconds, and `ruff check` passed with the locked ruff 0.16.1. CI installs with `pip install -e '.[test,dev]'` instead.
 
-Run it with `auctionflow backtest-bars data/external/databento/glbx-mdp3-20190506-20260803.ohlcv-1m.csv --format databento-glbx-mes-ohlcv-1m --report data/external/databento/backtests/databento-mes-ib-2019-2026-v1.report.json --sessions-jsonl data/external/databento/backtests/databento-mes-ib-2019-2026-v1.sessions.jsonl --experiment-id databento-mes-ib-2019-2026-v1 --created-at 2026-08-05T15:00:00Z`.
+Replay a committed fixture and check that two runs give the same output:
 
-## Results so far (research only)
+```bash
+uv run auctionflow replay tests/fixtures/acceptance_breakout.jsonl --decisions decisions.jsonl --verify-determinism
+```
 
-The Databento GLBX MDP3 replay covers 1,870 MES sessions from 2019-05 to 2026-08 (1,859 valid, 11 invalidated by missing contiguous bars) under the frozen `ib_acceptance` strategy with 122 cents commission and 125 cents slippage per contract round trip. Sessions are partitioned chronologically 60/20/20 into train, validation and test. The strategy accepted 419 sessions and journaled `NO_TRADE` on 1,419; expectancy per accepted trade was negative on the train and validation partitions and positive only on the test partition, which is the pattern the promotion policy treats as no evidence. Nothing has been promoted from `RESEARCH_ONLY`. The report and session JSONL are reproducible from the command above; they are not committed because the underlying data is licensed.
+Run a bar backtest on the synthetic FirstRate fixture:
 
-## Status
+```bash
+uv run auctionflow backtest-bars tests/fixtures/historical/synthetic_firstrate.csv \
+	--report report.json --sessions-jsonl sessions.jsonl \
+	--experiment-id demo --created-at 2026-10-21T00:00:00Z
+```
 
-Milestone 0. 341 tests, `ruff` clean, CI on push. MIT licensed. Not investment advice, not connected to any broker, not a trading system.
+Reproduce the Databento result. This needs a licensed Databento GLBX MDP3 MES 1-minute CSV at the input path:
+
+```bash
+uv run auctionflow backtest-bars data/external/databento/glbx-mdp3-20190506-20260803.ohlcv-1m.csv \
+	--format databento-glbx-mes-ohlcv-1m \
+	--report data/external/databento/backtests/databento-mes-ib-2019-2026-v1.report.json \
+	--sessions-jsonl data/external/databento/backtests/databento-mes-ib-2019-2026-v1.sessions.jsonl \
+	--experiment-id databento-mes-ib-2019-2026-v1 --created-at 2026-08-05T15:00:00Z
+```
+
+Other commands:
+
+- `auctionflow normalize-bars INPUT --output OUTPUT --format firstrate-mes-1m` (or `portara-mes-1m`) writes canonical JSONL labeled `BAR_CLOSE_PROXY`.
+- `auctionflow research` writes Parquet exports, a report, and an append-only experiment ledger entry.
+- `auctionflow capture --transport fixture` writes raw JSONL and a manifest from a fixture. It has no live transport.
+- `auctionflow shadow-snapshot --account-id ID --contract-id MES --output REPORT` writes a read-only account snapshot. The default `--transport projectx` mode reads `TOPSTEPX_USERNAME` and `TOPSTEPX_API_KEY` from the environment and calls the TopstepX API. Use `--transport fixture --fixture PATH --created-at ISO` to run with no network and no credentials.
+
+## Repository layout
+
+- `src/auctionflow/`: the package, 24 modules and 3,210 lines.
+- `tests/`: 341 pytest and hypothesis tests, with fixtures and golden reports.
+- `scripts/`: one-off train-split parameter searches over the Databento data.
+- `docs/`: the charter, risk rules, data contract, strategy cards, and research policy.
+- `.github/workflows/ci.yml`: ruff and pytest on every push and pull request.
+
+## Documentation
+
+- [Project charter](docs/PROJECT_CHARTER.md): the purpose, the alert-only boundary, and the operating limits.
+- [Risk constitution](docs/RISK_CONSTITUTION.md): official Topstep rules, with dates and sources, kept apart from this project's internal controls.
+- [Data contract](docs/DATA_CONTRACT.md): raw and canonical record formats and the rules for each vendor input.
+- [Strategy cards](docs/STRATEGY_CARDS.md): each strategy evaluator and its states.
+- [Experiment ledger](docs/EXPERIMENT_LEDGER.md): the required record for every trial, including failures.
+- [Promotion policy](docs/PROMOTION_POLICY.md): the evidence a strategy needs before it can leave `RESEARCH_ONLY`.
+
+## Sources
+
+- **Databento GLBX MDP3** 1-minute OHLCV for MES, 2019-05-06 to 2026-08-03 per the file name. The data is licensed and is not committed. `data/external/` is in `.gitignore`.
+- **FirstRate Data** and **Portara** MES 1-minute bars are supported input formats. No vendor data is committed. Test fixtures are synthetic.
+- **Topstep** rule snapshot: the Maximum Loss Limit help article, effective 2026-07-01 and checked 2026-08-04. See the [risk constitution](docs/RISK_CONSTITUTION.md).
+- Each bar backtest report records SHA-256 hashes of the input file, the sessions JSONL, and the report, plus the config revisions.
+
+## Scope and limits
+
+- Independent research by Rahil Bhavan. Not affiliated with CME Group, Topstep, Databento, FirstRate Data, or Portara.
+- Alert only. No code path places, modifies, or cancels an order. Nothing has been promoted from `RESEARCH_ONLY`.
+- Bar backtests are `BAR_OHLC_RESEARCH_ONLY`. They do not show tick order flow, depth, or the exact order of a stop and a target inside one bar. Contract rolls are not adjusted.
+- The Databento results above could not be re-run here, because the data is licensed.
+- Only one Topstep rule (the 50K Maximum Loss Limit) has been checked against official documentation. Other platform rules are not verified.
+- A passing replay is not evidence of profitability.
+
+## License
+
+MIT. See [LICENSE](LICENSE). The license covers this project's code, not third-party market data or Topstep documentation.
+
+Part of [Rahil Bhavan's projects](https://github.com/RahilBhavan).

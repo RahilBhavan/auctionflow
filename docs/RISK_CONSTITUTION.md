@@ -1,4 +1,6 @@
-# Risk Constitution
+# Risk constitution
+
+This file records official Topstep rules with their sources and dates, and keeps them apart from this project's internal controls.
 
 ## Authority boundary
 This document distinguishes **official external rules** from **internal controls**. No live authority is invented here. Official Topstep rules must be rechecked against current official documentation before implementation or promotion.
