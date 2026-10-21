@@ -8,6 +8,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: pip install -e '.[test,dev]'
-      - run: ruff check .
-      - run: python -m pytest -q
+      - run: uv sync --locked --extra test --extra dev
+      - run: uv run --locked ruff check .
+      - run: uv run --locked python -m pytest -q
