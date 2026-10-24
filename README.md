@@ -47,13 +47,15 @@ uv run --locked ruff check .
 uv run --locked --extra test --extra dev pytest
 ```
 
-Observed on 2026-10-21: `341 passed` in about 3 seconds, and `ruff check` passed with the locked ruff 0.16.1. CI installs with `pip install -e '.[test,dev]'` instead.
+Observed on 2026-10-21: `341 passed` in about 3 seconds, and `ruff check` passed with the locked ruff 0.16.1. CI runs the same three commands (`.github/workflows/ci.yml`). CI passed on the latest `main` commit (fe3066a) on 2026-10-24.
 
 Replay a committed fixture and check that two runs give the same output:
 
 ```bash
 uv run auctionflow replay tests/fixtures/acceptance_breakout.jsonl --decisions decisions.jsonl --verify-determinism
 ```
+
+The fixture is synthetic test data, not market data. The journal it writes has six lines: five `WATCH` entries with reason `SETUP`, then one `AUTHORIZE_2_MES` entry with reason `AUTHORIZATION` at 2025-01-02T14:41:00Z. That entry is a simulated alert, not an order.
 
 Run a bar backtest on the synthetic FirstRate fixture:
 
