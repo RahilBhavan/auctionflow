@@ -17,9 +17,11 @@ These figures are carried over from the earlier README. The underlying Databento
 | Strategy | frozen `ib_acceptance` (initial-balance acceptance), 09:30–11:29 ET |
 | Costs | 122 cents commission and 125 cents slippage per contract round trip |
 | Split | chronological 60/20/20 train, validation, and test |
-| Decisions | 419 sessions accepted, 1,419 journaled `NO_TRADE` |
+| Decisions | 419 sessions accepted, 1,419 journaled `NO_TRADE` (1,838 in total; see the note below) |
 | Expectancy per accepted trade | negative on train and validation, positive only on test |
 | Outcome | nothing promoted. The promotion policy treats a test-only positive as no evidence. |
+
+**Unreconciled:** 1,859 valid sessions minus 419 accepted and 1,419 `NO_TRADE` leaves 21 sessions unaccounted for. The report and the licensed data are not available, so the category of those 21 sessions has not been found. Treat the decision counts as unverified until the report is re-run ([issue #2](https://github.com/RahilBhavan/auctionflow/issues/2)).
 
 Source: `data/external/databento/backtests/databento-mes-ib-2019-2026-v1.report.json`, produced by the command in [Run it](#run-it). This file is not in the repository.
 
@@ -42,7 +44,7 @@ Prerequisites: Python 3.12 and [uv](https://docs.astral.sh/uv/). One regression 
 ```bash
 uv sync --locked --extra test --extra dev
 uv run --locked ruff check .
-uv run --locked python -m pytest -q
+uv run --locked --extra test --extra dev pytest
 ```
 
 Observed on 2026-10-21: `341 passed` in about 3 seconds, and `ruff check` passed with the locked ruff 0.16.1. CI installs with `pip install -e '.[test,dev]'` instead.
