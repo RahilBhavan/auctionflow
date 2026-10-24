@@ -96,7 +96,8 @@ def test_duplicate_ids_and_corrupt_fail_closed(tmp_path):
 
 def test_multiprocess_exactly_one(tmp_path):
     store = StateStore(tmp_path / "state.json", "a", "s"); ready(store)
-    result = multiprocessing.Queue(); processes = [multiprocessing.Process(target=worker, args=(store.path, result)) for _ in range(2)]
+    ctx = multiprocessing.get_context("spawn")  # fork() in a threaded pytest process warns
+    result = ctx.Queue(); processes = [ctx.Process(target=worker, args=(store.path, result)) for _ in range(2)]
     for process in processes: process.start()
     for process in processes: process.join(5)
     assert all(not process.is_alive() for process in processes)

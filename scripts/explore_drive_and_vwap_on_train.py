@@ -1,3 +1,4 @@
+"""Exploratory train/validation search for the drive and VWAP-reclaim strategies (licensed Databento input)."""
 from __future__ import annotations
 
 import argparse

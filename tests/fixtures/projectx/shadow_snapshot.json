@@ -1,0 +1,63 @@
+{
+  "/api/Account/search": {
+    "accounts": [
+      {
+        "balance": 1,
+        "canTrade": true,
+        "id": 101,
+        "isVisible": true,
+        "name": "SIM",
+        "simulated": true
+      }
+    ],
+    "errorCode": 0,
+    "errorMessage": null,
+    "success": true
+  },
+  "/api/Auth/loginKey": {
+    "errorCode": 0,
+    "errorMessage": null,
+    "success": true,
+    "token": "fixture-token"
+  },
+  "/api/Contract/search": {
+    "contracts": [
+      {
+        "activeContract": true,
+        "description": "MES",
+        "id": "MES-ID",
+        "name": "MES",
+        "symbolId": "F.US.MES",
+        "tickSize": 0.25,
+        "tickValue": 1.25
+      }
+    ],
+    "errorCode": 0,
+    "errorMessage": null,
+    "success": true
+  },
+  "/api/History/retrieveBars": {
+    "bars": [],
+    "errorCode": 0,
+    "errorMessage": null,
+    "success": true
+  },
+  "/api/Order/search": {
+    "errorCode": 0,
+    "errorMessage": null,
+    "orders": [],
+    "success": true
+  },
+  "/api/Position/searchOpen": {
+    "errorCode": 0,
+    "errorMessage": null,
+    "positions": [],
+    "success": true
+  },
+  "/api/Trade/search": {
+    "errorCode": 0,
+    "errorMessage": null,
+    "success": true,
+    "trades": []
+  }
+}
