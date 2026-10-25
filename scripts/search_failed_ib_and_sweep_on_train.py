@@ -1,3 +1,4 @@
+"""Train-split parameter search for the failed_ib and liquidity_sweep strategies (licensed Databento input)."""
 from __future__ import annotations
 
 import argparse

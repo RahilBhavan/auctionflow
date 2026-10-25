@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 sys.path.insert(0, "scripts")
 
-from task32_train_exploratory import (
+from explore_drive_and_vwap_on_train import (
     DriveConfig,
     _trade,
     expanding_prior_width_median,

@@ -2,6 +2,8 @@
 
 [![ci](https://github.com/RahilBhavan/auctionflow/actions/workflows/ci.yml/badge.svg)](https://github.com/RahilBhavan/auctionflow/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+![Price in ticks over six synthetic events. Five WATCH decisions are followed by one simulated AUTHORIZE_2_MES entry at 14:41Z.](docs/img/replay-journal.svg)
+
 > **Research only. Alert only. This project never submits, modifies, or cancels an order.** An `AUTHORIZE_*` decision is a journal entry from a simulation, not an order. Not affiliated with CME Group or Topstep. Not investment advice.
 
 AuctionFlow OneShot (repository `auctionflow`, package `auctionflow-oneshot`) is a Python 3.12 package that replays one Micro E-mini S&P 500 (MES) futures session at a time under Topstep-style account rules. It reads recorded events or vendor 1-minute bars, advances explicit account and strategy state, applies fail-closed risk gates, and writes a deterministic decision journal. The same inputs, initial state, and config produce byte-identical output, and `replay --verify-determinism` checks it.
@@ -47,13 +49,25 @@ uv run --locked ruff check .
 uv run --locked --extra test --extra dev pytest
 ```
 
-Observed on 2026-10-21: `341 passed` in about 3 seconds, and `ruff check` passed with the locked ruff 0.16.1. CI installs with `pip install -e '.[test,dev]'` instead.
+Observed on 2026-10-24: `342 passed` in about 2 seconds, and `ruff check` passed with the locked ruff 0.16.1. CI runs the same three commands (`.github/workflows/ci.yml`). CI passed on the latest `main` commit (fe3066a) on 2026-10-24.
 
 Replay a committed fixture and check that two runs give the same output:
 
 ```bash
 uv run auctionflow replay tests/fixtures/acceptance_breakout.jsonl --decisions decisions.jsonl --verify-determinism
 ```
+
+The fixture is synthetic test data, not market data. The journal it writes has six lines: five `WATCH` entries with reason `SETUP`, then one `AUTHORIZE_2_MES` entry with reason `AUTHORIZATION` at 2025-01-02T14:41:00Z. That entry is a simulated alert, not an order.
+
+Write an offline shadow snapshot from the committed synthetic broker fixture. It needs no network and no credentials, and the output file must not already exist:
+
+```bash
+uv run auctionflow shadow-snapshot --account-id 101 --contract-id MES-ID \
+	--transport fixture --fixture tests/fixtures/projectx/shadow_snapshot.json \
+	--created-at 2025-01-20T16:00:00+00:00 --output shadow.json
+```
+
+The fixture holds one simulated account with no position and no working orders, so the report has `status` `NO_TRADE` and a `MATCH` reconciliation. The figure at the top comes from the replay command above: `python3 scripts/render_replay_figure.py tests/fixtures/acceptance_breakout.jsonl decisions.jsonl docs/img/replay-journal.svg`.
 
 Run a bar backtest on the synthetic FirstRate fixture:
 
@@ -78,13 +92,13 @@ Other commands:
 - `auctionflow normalize-bars INPUT --output OUTPUT --format firstrate-mes-1m` (or `portara-mes-1m`) writes canonical JSONL labeled `BAR_CLOSE_PROXY`.
 - `auctionflow research` writes Parquet exports, a report, and an append-only experiment ledger entry.
 - `auctionflow capture --transport fixture` writes raw JSONL and a manifest from a fixture. It has no live transport.
-- `auctionflow shadow-snapshot --account-id ID --contract-id MES --output REPORT` writes a read-only account snapshot. The default `--transport projectx` mode reads `TOPSTEPX_USERNAME` and `TOPSTEPX_API_KEY` from the environment and calls the TopstepX API. Use `--transport fixture --fixture PATH --created-at ISO` to run with no network and no credentials.
+- `auctionflow shadow-snapshot --account-id ID --contract-id MES --output REPORT` writes a read-only account snapshot. The default `--transport projectx` mode reads `TOPSTEPX_USERNAME` and `TOPSTEPX_API_KEY` from the environment and calls the TopstepX API. Use `--transport fixture --fixture PATH --created-at ISO` to run with no network and no credentials (see the offline command below).
 
 ## Repository layout
 
 - `src/auctionflow/`: the package, 24 modules and 3,210 lines.
-- `tests/`: 341 pytest and hypothesis tests, with fixtures and golden reports.
-- `scripts/`: one-off train-split parameter searches over the Databento data.
+- `tests/`: 342 pytest and hypothesis tests, with fixtures and golden reports.
+- `scripts/`: `search_failed_ib_and_sweep_on_train.py` and `explore_drive_and_vwap_on_train.py` run train-split parameter searches over the Databento data (licensed, not committed). `render_replay_figure.py` draws the figure at the top.
 - `docs/`: the charter, risk rules, data contract, strategy cards, and research policy.
 - `.github/workflows/ci.yml`: ruff and pytest on every push and pull request.
 

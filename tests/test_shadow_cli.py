@@ -90,3 +90,11 @@ def test_created_at_must_be_utc(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
         main(args(tmp_path, path, "--created-at", "2025-01-20T16:00:00"))
     assert not (tmp_path / "shadow.json").exists()
+
+
+def test_committed_shadow_fixture_gives_no_trade_snapshot(tmp_path: Path) -> None:
+    committed = Path(__file__).parent / "fixtures/projectx/shadow_snapshot.json"
+    assert main(args(tmp_path, committed)) == 0
+    report = json.loads((tmp_path / "shadow.json").read_text())
+    assert report["status"] == "NO_TRADE"
+    assert report["account"] == {"id": 101, "simulated": True}
