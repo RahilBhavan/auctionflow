@@ -23,7 +23,7 @@ These figures are carried over from the earlier README. The underlying Databento
 | Expectancy per accepted trade | negative on train and validation, positive only on test |
 | Outcome | nothing promoted. The promotion policy treats a test-only positive as no evidence. |
 
-**Unreconciled:** 1,859 valid sessions minus 419 accepted and 1,419 `NO_TRADE` leaves 21 sessions unaccounted for. The report and the licensed data are not available, so the category of those 21 sessions has not been found. Treat the decision counts as unverified until the report is re-run ([issue #2](https://github.com/RahilBhavan/auctionflow/issues/2)).
+**Unreconciled:** 1,859 valid sessions minus 419 accepted and 1,419 `NO_TRADE` leaves 21 sessions unaccounted for. The report, its sessions JSONL and the licensed input CSV are not available to reproduce: a search of the development machine on 2026-10-28 found none of them, so the category of those 21 sessions has not been found and the counts cannot be re-derived from this repository. Treat the decision counts as unverified until the report is re-run ([issue #2](https://github.com/RahilBhavan/auctionflow/issues/2)).
 
 Source: `data/external/databento/backtests/databento-mes-ib-2019-2026-v1.report.json`, produced by the command in [Run it](#run-it). This file is not in the repository.
 
