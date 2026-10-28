@@ -68,6 +68,7 @@ def _metrics(items: list[dict[str, Any]]) -> dict[str, Any]:
         drawdown = max(drawdown, peak - equity)
     return {
         "accepted_trades": len(accepted), "no_trade_sessions": sum(x["status"] == "NO_TRADE" for x in items),
+        "rejected_sessions": sum(x["status"] == "REJECTED" for x in items),
         "outcome_counts": dict(sorted(Counter(x["label"] for x in accepted).items())),
         "expectancy_per_accepted_trade_cents": (sum(x["net_cents"] for x in accepted) / len(accepted) if accepted else None),
         "win_rate": (wins / len(accepted) if accepted else None),

@@ -198,3 +198,23 @@ def test_databento_missing_projection_minutes_remains_existing_invalid_session(t
     source.write_text("\n".join(line for line in lines if "15:00:00.000000000Z" not in line) + "\n")
     report = run_bar_backtest(source, tmp_path / "r", tmp_path / "s", "db", "2024-01-01T00:00:00Z", format="databento-glbx-mes-ohlcv-1m")
     assert report["counts"]["status"].get("DATA_INVALID", 0) >= 1
+
+
+def test_every_valid_session_is_accepted_no_trade_or_rejected(tmp_path, monkeypatch):
+    """Issue #2: REJECTED sessions (INSUFFICIENT_RISK, INVALID_GEOMETRY) are valid sessions
+    that are neither ACCEPTED nor NO_TRADE; the report must count them so totals reconcile."""
+    source = tmp_path / "bars.csv"; fixture(source, 6)
+    import auctionflow.bar_research as module
+    statuses = {2: "ACCEPTED", 3: "NO_TRADE", 4: "REJECTED", 5: "DATA_INVALID", 6: "REJECTED", 7: "NO_TRADE"}
+    def evaluate(group, tc, sc):
+        day = group[0].et_date
+        status = statuses[day.day]
+        return IBSessionResult(session=day, state=status, status=status, reason="X", direction=None,
+                               trading_config_revision=tc.revision, strategy_config_revision=sc.revision)
+    monkeypatch.setattr(module, "evaluate_ib_session", evaluate)
+    report = run_bar_backtest(source, tmp_path / "r", tmp_path / "s", "x", "2024-01-01T00:00:00Z")
+    for p in [report["totals"], *report["partitions"].values()]:
+        if "accepted_trades" in p and p["status"].get("DATA_INVALID") is None:
+            assert p["accepted_trades"] + p["no_trade_sessions"] + p["rejected_sessions"] == p["valid"]
+    t = report["totals"]
+    assert (t["accepted_trades"], t["no_trade_sessions"], t["rejected_sessions"], t["valid"]) == (1, 2, 2, 5)

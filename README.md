@@ -23,7 +23,7 @@ These figures are carried over from the earlier README. The underlying Databento
 | Expectancy per accepted trade | negative on train and validation, positive only on test |
 | Outcome | nothing promoted. The promotion policy treats a test-only positive as no evidence. |
 
-**Unreconciled:** 1,859 valid sessions minus 419 accepted and 1,419 `NO_TRADE` leaves 21 sessions unaccounted for. The report, its sessions JSONL and the licensed input CSV are not available to reproduce: a search of the development machine on 2026-10-28 found none of them, so the category of those 21 sessions has not been found and the counts cannot be re-derived from this repository. Treat the decision counts as unverified until the report is re-run ([issue #2](https://github.com/RahilBhavan/auctionflow/issues/2)).
+**Unreconciled:** 1,859 valid sessions minus 419 accepted and 1,419 `NO_TRADE` leaves 21 sessions unaccounted for. The report, its sessions JSONL and the licensed input CSV are not available to reproduce: a search of the development machine on 2026-10-28 found none of them, so the category of those 21 sessions has not been found and the counts cannot be re-derived from this repository. Likely cause, not confirmed: the bar evaluator can also return a `REJECTED` status (reasons `INSUFFICIENT_RISK` and `INVALID_GEOMETRY`) for a valid session, and the old report summary counted only `ACCEPTED` and `NO_TRADE`. The report now also carries `rejected_sessions`, so accepted + `NO_TRADE` + rejected equals valid sessions (regression test `test_every_valid_session_is_accepted_no_trade_or_rejected`). Whether the 21 missing sessions are `REJECTED` cannot be checked without the licensed data. The figures above are unchanged and unverified until the report is re-run ([issue #2](https://github.com/RahilBhavan/auctionflow/issues/2)).
 
 Source: `data/external/databento/backtests/databento-mes-ib-2019-2026-v1.report.json`, produced by the command in [Run it](#run-it). This file is not in the repository.
 
@@ -97,7 +97,7 @@ Other commands:
 ## Repository layout
 
 - `src/auctionflow/`: the package, 24 modules and 3,210 lines.
-- `tests/`: 342 pytest and hypothesis tests, with fixtures and golden reports.
+- `tests/`: 343 pytest and hypothesis tests, with fixtures and golden reports.
 - `scripts/`: `search_failed_ib_and_sweep_on_train.py` and `explore_drive_and_vwap_on_train.py` run train-split parameter searches over the Databento data (licensed, not committed). `render_replay_figure.py` draws the figure at the top.
 - `docs/`: the charter, risk rules, data contract, strategy cards, and research policy.
 - `.github/workflows/ci.yml`: ruff and pytest on every push and pull request.
