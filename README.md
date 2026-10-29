@@ -49,7 +49,7 @@ uv run --locked ruff check .
 uv run --locked --extra test --extra dev pytest
 ```
 
-Observed on 2026-10-24: `342 passed` in about 2 seconds, and `ruff check` passed with the locked ruff 0.16.1. CI runs the same three commands (`.github/workflows/ci.yml`). CI passed on the latest `main` commit (fe3066a) on 2026-10-24.
+CI runs the same three commands (`.github/workflows/ci.yml`). The `ci` badge at the top shows whether they pass on `main` now; this README keeps no hand-typed test count or pass date, because those drift.
 
 Replay a committed fixture and check that two runs give the same output:
 
@@ -97,7 +97,7 @@ Other commands:
 ## Repository layout
 
 - `src/auctionflow/`: the package, 24 modules and 3,210 lines.
-- `tests/`: 343 pytest and hypothesis tests, with fixtures and golden reports.
+- `tests/`: pytest and hypothesis tests, with fixtures and golden reports.
 - `scripts/`: `search_failed_ib_and_sweep_on_train.py` and `explore_drive_and_vwap_on_train.py` run train-split parameter searches over the Databento data (licensed, not committed). `render_replay_figure.py` draws the figure at the top.
 - `docs/`: the charter, risk rules, data contract, strategy cards, and research policy.
 - `.github/workflows/ci.yml`: ruff and pytest on every push and pull request.
