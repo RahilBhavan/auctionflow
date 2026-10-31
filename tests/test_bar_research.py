@@ -218,3 +218,32 @@ def test_every_valid_session_is_accepted_no_trade_or_rejected(tmp_path, monkeypa
             assert p["accepted_trades"] + p["no_trade_sessions"] + p["rejected_sessions"] == p["valid"]
     t = report["totals"]
     assert (t["accepted_trades"], t["no_trade_sessions"], t["rejected_sessions"], t["valid"]) == (1, 2, 2, 5)
+
+
+def test_real_evaluator_rejected_sessions_reconcile(tmp_path):
+    """Issue #2 without mocks: a wide stop (INSUFFICIENT_RISK) and a gap through the stop
+    (INVALID_GEOMETRY) are valid sessions that the old accepted + NO_TRADE summary dropped."""
+    ib = (5000, 5001, 4999, 5000)
+    flat = (5002, 5002.5, 5001.5, 5002)
+    breakout = [(5001, 5003, 4960, 5002.5), (5002, 5003, 5001.5, 5002), (5002, 5003, 5001, 5002), flat]
+
+    def bars(kind):
+        if kind == "none":
+            return [ib] * 120
+        entry = (4900, 4900, 4900, 4900) if kind == "gap" else flat
+        out = [ib] * 60 + breakout + [entry]
+        return out + [flat] * (120 - len(out))
+
+    source = tmp_path / "bars.csv"
+    with source.open("w", newline="") as f:
+        w = csv.writer(f); w.writerow(("timestamp", "open", "high", "low", "close", "volume"))
+        for day, kind in ((2, "none"), (3, "wide"), (4, "gap"), (5, "none")):
+            for i, (o, h, lo, c) in enumerate(bars(kind)):
+                hh, mm = divmod(9 * 60 + 30 + i, 60)
+                w.writerow((f"2024-01-{day:02d}T{hh:02d}:{mm:02d}", o, h, lo, c, 1))
+    report = run_bar_backtest(source, tmp_path / "r", tmp_path / "s", "x", "2024-01-01T00:00:00Z")
+    t = report["totals"]
+    assert report["counts"]["status"] == {"NO_TRADE": 2, "REJECTED": 2}
+    assert report["counts"]["reason"]["INSUFFICIENT_RISK"] == report["counts"]["reason"]["INVALID_GEOMETRY"] == 1
+    assert t["accepted_trades"] + t["no_trade_sessions"] == 2 < report["counts"]["valid_sessions"] == 4
+    assert t["accepted_trades"] + t["no_trade_sessions"] + t["rejected_sessions"] == report["counts"]["valid_sessions"]
